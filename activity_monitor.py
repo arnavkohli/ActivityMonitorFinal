@@ -11,11 +11,12 @@ from keyboard_listener import KeyboardListener
 # Logging
 from terminaltables import AsciiTable
 from textwrap import wrap
-import logging
+import logging, time
+
+from allFiles import FileManager
 
 '''
 from window_listener import WindowListener
-from allFiles import FileManager
 '''
 
 
@@ -25,20 +26,17 @@ logging.basicConfig(filename='app.log', format='%(message)s', level=logging.INFO
 class ActivityMonitor:
 
 	def __init__(self):
-		self.ML = MouseListener()
-		self.KL = KeyboardListener()
-		self.FM = FileManager()
-		self.start_time = datetime.now()
-
-		self.report_interval_mins = 1 # minutes
-		self.update_interval_secs = 5 # seconds
-
-		self.total_clicks = 0
-		self.total_keystrokes = 0
-
-		self.last_time_stamp = self.start_time
-
-		self.application_id = '{}{}{}{}{}{}'.format(
+                self.FM = FileManager()
+                self.FM.allFiles(self.FM.basepath)
+                self.ML = MouseListener()
+                self.KL = KeyboardListener()
+                self.start_time = datetime.now()
+                self.report_interval_secs = 30 # seconds
+                self.update_interval_secs = 5 # seconds
+                self.total_clicks = 0
+                self.total_keystrokes = 0
+                self.last_time_stamp = self.start_time
+                self.application_id = '{}{}{}{}{}{}'.format(
 								self.start_time.month,
 								self.start_time.day,
 								self.start_time.year,
@@ -47,18 +45,17 @@ class ActivityMonitor:
 								self.start_time.second
 							)
 
-		self.last_report = None
-
-		print ('Application ID {} initialised at {}'.format(self.application_id, self.start_time))
+                self.last_report = None
+                print ('Application ID {} initialised at {}'.format(self.application_id, self.start_time))
 
 	def get_opened_files(self, active_window):
-        res = []
-        for file in self.FM.files:
-                if file in active_window:
-                        res.append(self.FM.files[file])
-        if res == []:
-                return ['None']
-        return res
+                res = []
+                for file in self.FM.files:
+                        if file in active_window:
+                                res.append(self.FM.files[file])
+                if res == []:
+                        return ['None']
+                return res
 
 	def log(self):
 
@@ -107,6 +104,7 @@ class ActivityMonitor:
 			"KeysPressed": self.total_keystrokes,
 			"OpenDocuments": opened_files
 		}
+		print (report)
 
 		# send report
 		self.last_report = report
@@ -118,24 +116,28 @@ class ActivityMonitor:
 
 	def update(self):
 		self.total_clicks = self.ML.get_clicks()
-		self.total_keystrokes = self.get_strokes()
+		self.total_keystrokes = self.KL.get_strokes()
 
 
 	def run(self):
 		while True:
 			now = datetime.now()
-			if (now - self.last_time_stamp).seconds >= self.update_interval_secs:
+			diff = now - self.last_time_stamp
+			print (diff)
+			if (diff).seconds >= self.update_interval_secs:
 				# self.log()
 				self.update()
 				self.reset()
 
-			if (now - self.last_time_stamp).minutes >= self.report_interval_mins:
+			if (diff).seconds >= self.report_interval_secs:
 				self.create_report()
-				self.display_last_report()
+				# self.display_last_report()
+			time.sleep(1)
+			
 
 	def display_last_report(self):
 		for key in self.last_report:
-			print ('{}: {}'.format(ley, self.last_report[key]))
+			print ('{}: {}'.format(key, self.last_report[key]))
 
 
 
