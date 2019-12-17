@@ -23,6 +23,12 @@ class KeyboardListener:
         if key == Key.esc:
             # Stop listener
             return False
+
+    def get_strokes(self):
+        return self.strokes
+
+    def reset_strokes(self):
+        self.strokes = 0
 if __name__ == '__main__':
     kl = KeyboardListener()
     kl.start()

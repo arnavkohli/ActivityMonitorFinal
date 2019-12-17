@@ -1,13 +1,23 @@
 from datetime import datetime, timedelta
+import threading
+
+# For active windows
+from win32gui import GetWindowText, GetForegroundWindow
+
+# Listeners for Mouse and Keyboard Events
 from mouse_listener import MouseListener
 from keyboard_listener import KeyboardListener
-# from application_listener import ApplicationListener
-from window_listener import WindowListener
-import threading, logging
+
+# Logging
 from terminaltables import AsciiTable
 from textwrap import wrap
+import logging
+
+'''
+from window_listener import WindowListener
 from allFiles import FileManager
-from win32gui import GetWindowText, GetForegroundWindow
+'''
+
 
 
 logging.basicConfig(filename='app.log', format='%(message)s', level=logging.INFO)
@@ -17,79 +27,120 @@ class ActivityMonitor:
 	def __init__(self):
 		self.ML = MouseListener()
 		self.KL = KeyboardListener()
-		# self.AL = ApplicationListener()
-		#self.WL = WindowListener()
-		self.last_time_stamp = datetime.now()
-
-		self.interval = 5
-
 		self.FM = FileManager()
-		self.FM.allFiles(self.FM.basepath)
-		print ('Intialised')
+		self.start_time = datetime.now()
 
-	def get_open_files(self, wins):
-                res = []
-                for file in self.FM.files:
-                        if file in wins:
-                                res.append(self.FM.files[file])
-                if res == []:
-                        return ['None']
-                return res
+		self.report_interval_mins = 1 # minutes
+		self.update_interval_secs = 5 # seconds
+
+		self.total_clicks = 0
+		self.total_keystrokes = 0
+
+		self.last_time_stamp = self.start_time
+
+		self.application_id = '{}{}{}{}{}{}'.format(
+								self.start_time.month,
+								self.start_time.day,
+								self.start_time.year,
+								self.start_time.hour,
+								self.start_time.minute,
+								self.start_time.second
+							)
+
+		self.last_report = None
+
+		print ('Application ID {} initialised at {}'.format(self.application_id, self.start_time))
+
+	def get_opened_files(self, active_window):
+        res = []
+        for file in self.FM.files:
+                if file in active_window:
+                        res.append(self.FM.files[file])
+        if res == []:
+                return ['None']
+        return res
 
 	def log(self):
 
 		table_data =[
-			['Applications Open', ''],
+			['Active Window', ''],
 			['Keyboard Strokes', ''],
 			['Mouse Clicks', ''],
 			['Timestamp', ''],
-                        ['Files Open', '']
+            ['Files Open', '']
 		]
 
 
 		table = AsciiTable(table_data)
 		max_width = table.column_max_width(1)
 
-		#wins = self.WL.get_window_names()
-		active = GetWindowText(GetForegroundWindow())
+		active_window = GetWindowText(GetForegroundWindow())
 
-		# wrapped_string0 = '\n'.join(wrap('; '.join(self.AL.get_processes()), max_width))
-		# table.table_data[0][1] = wrapped_string0
-		windows_open = '\n'.join(wrap(active, max_width))
-		table.table_data[0][1] = windows_open
+		active_window_str = '\n'.join(wrap(active, max_width))
+		table.table_data[0][1] = active_window_str
 
-		keyboard_strokes = '\n'.join(wrap(str(self.KL.strokes), max_width))
-		table.table_data[1][1] = keyboard_strokes
+		keyboard_strokes_str = '\n'.join(wrap(str(self.KL.strokes), max_width))
+		table.table_data[1][1] = keyboard_strokes_str
 
-		mouse_clicks = '\n'.join(wrap(str(self.ML.clicks), max_width))
-		table.table_data[2][1] = mouse_clicks
+		mouse_clicks_str = '\n'.join(wrap(str(self.ML.clicks), max_width))
+		table.table_data[2][1] = mouse_clicks_str
 
-		time_stamp = '\n'.join(wrap(str(self.last_time_stamp + timedelta(seconds=self.interval)), max_width))
-		table.table_data[3][1] = time_stamp
+		time_stamp_str = '\n'.join(wrap(str(self.last_time_stamp + timedelta(seconds=self.interval)), max_width))
+		table.table_data[3][1] = time_stamp_str
 
-		files = '\n'.join(wrap('; '.join(self.get_open_files(active)), max_width))
-		table.table_data[4][1] = files
+		files_opened_str = '\n'.join(wrap('; '.join(self.get_opened_files(active)), max_width))
+		table.table_data[4][1] = files_opened_str
 
 
-		print (table.table)
-		# print (max_width)
 		logging.info(table.table)
 
+	def create_report(self):
+		report_time = datetime.now()
+		active_window = GetWindowText(GetForegroundWindow())
+		opened_files = self.get_opened_files(active_window)
+		report = {
+			"ApplicationID": self.application_id,
+			"InfoDataTime": report_time,
+			"InfoDuration": report_time - self.start_time,
+			"TitleActiveWindows": active_window,
+			"MouseClicks": self.total_clicks,
+			"KeysPressed": self.total_keystrokes,
+			"OpenDocuments": opened_files
+		}
+
+		# send report
+		self.last_report = report
+
 	def reset(self):
-		self.ML.clicks = 0
-		self.KL.strokes = 0
+		self.ML.reset_clicks()
+		self.KL.reset_strokes()
 		self.last_time_stamp = datetime.now()
 
-
 	def update(self):
+		self.total_clicks = self.ML.get_clicks()
+		self.total_keystrokes = self.get_strokes()
+
+
+	def run(self):
 		while True:
-			if (datetime.now() - self.last_time_stamp).seconds >= self.interval:
-				self.log()
+			now = datetime.now()
+			if (now - self.last_time_stamp).seconds >= self.update_interval_secs:
+				# self.log()
+				self.update()
 				self.reset()
+
+			if (now - self.last_time_stamp).minutes >= self.report_interval_mins:
+				self.create_report()
+				self.display_last_report()
+
+	def display_last_report(self):
+		for key in self.last_report:
+			print ('{}: {}'.format(ley, self.last_report[key]))
+
 
 
 	def monitor(self):
-		t0 = threading.Thread(target=self.update).start()
+		t0 = threading.Thread(target=self.run).start()
 		t1 = threading.Thread(target=self.ML.start).start()
 		t2 = threading.Thread(target=self.KL.start).start()
 

@@ -14,13 +14,13 @@ class MouseListener:
 
     def on_click(self, x, y, button, pressed):
         self.clicks += 1
-        print ('Pressed')
-        # print('{0} at {1}'.format(
-        #     'Pressed' if pressed else 'Released',
-        #     (x, y)))
-        # if not pressed:
-        #     # Stop listener
-        #     return False
+    
+    def get_clicks(self):
+        return self.clicks
+
+    def reset_clicks(self):
+        self.clicks = 0
+        
 if __name__ == '__main__':
     ml = MouseListener()
     ml.start()
