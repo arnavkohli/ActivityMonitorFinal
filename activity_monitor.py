@@ -11,7 +11,7 @@ from keyboard_listener import KeyboardListener
 # Logging
 from terminaltables import AsciiTable
 from textwrap import wrap
-import logging, time
+import logging, time, requests
 
 from allFiles import FileManager
 
@@ -47,7 +47,7 @@ class ActivityMonitor:
 
                 self.reports = []
                 self.last_report_time = self.start_time
-                self.url = 'http://lviv.ixioo.com:8030/ActivityTracking'
+                self.url = 'http://lviv.ixioo.com:8001/ActivityTracking'
                 print ('Application ID {} initialised at {}'.format(self.application_id, self.start_time))
 
 	def get_opened_files(self, active_window):
@@ -101,13 +101,14 @@ class ActivityMonitor:
 
 
 	def send_reports(self):
-		# requests.post(
-		# 	url=self.url,
-		# 	data=self.reports
-		# )
-		print ('TOTAL: {}'format(len(self.reports)))
+		r = requests.post(
+                        url=self.url,
+		 	json=self.reports
+		)
+		print ('TOTAL: {}'.format(len(self.reports)))
 		print (self.reports)
-		self.last_report_time = report_time
+		print (r.text)
+		self.last_report_time = datetime.now()
 		self.reports = []
 
 	def reset(self):
@@ -124,9 +125,9 @@ class ActivityMonitor:
 		opened_files = self.get_opened_files(active_window)
 		report = {
 			"ApplicationID": self.application_id,
-			"InfoDataTime": report_time,
-			"InfoDuration": report_time - self.start_time,
-			"TitleActiveWindows": active_window,
+			"InfoDataTime": str(report_time),
+			"InfoDuration": (report_time - self.start_time).seconds,
+			"TitleActiveWindows": str(active_window),
 			"MouseClicks": self.total_clicks,
 			"KeysPressed": self.total_keystrokes,
 			"OpenDocuments": opened_files
@@ -143,7 +144,7 @@ class ActivityMonitor:
 			now = datetime.now()
 			upd_diff = now - self.last_time_stamp
 			rep_diff = now - self.last_report_time
-			#print (upd_diff.seconds, rep_diff.seconds)
+			# print (upd_diff.seconds, rep_diff.seconds)
 			if upd_diff.seconds >= self.update_interval_secs:
 				# self.log()
 				self.update()
