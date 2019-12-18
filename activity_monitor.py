@@ -45,8 +45,9 @@ class ActivityMonitor:
 								self.start_time.second
 							)
 
-                self.last_report = None
+                self.reports = []
                 self.last_report_time = self.start_time
+                self.url = 'http://lviv.ixioo.com:8030/ActivityTracking'
                 print ('Application ID {} initialised at {}'.format(self.application_id, self.start_time))
 
 	def get_opened_files(self, active_window):
@@ -92,7 +93,32 @@ class ActivityMonitor:
 
 		logging.info(table.table)
 
-	def create_report(self):
+	def send_report(self, report):
+		requests.post(
+			url=self.url,
+			data=report
+		)
+
+
+	def send_reports(self):
+		# requests.post(
+		# 	url=self.url,
+		# 	data=self.reports
+		# )
+		print ('TOTAL: {}'format(len(self.reports)))
+		print (self.reports)
+		self.last_report_time = report_time
+		self.reports = []
+
+	def reset(self):
+		self.ML.reset_clicks()
+		self.KL.reset_strokes()
+		self.last_time_stamp = datetime.now()
+
+	def update(self):
+		self.total_clicks += self.ML.get_clicks()
+		self.total_keystrokes += self.KL.get_strokes()
+
 		report_time = datetime.now()
 		active_window = GetWindowText(GetForegroundWindow())
 		opened_files = self.get_opened_files(active_window)
@@ -108,17 +134,8 @@ class ActivityMonitor:
 		#print (report)
 
 		# send report
-		self.last_report = report
-		self.last_report_time = report_time
+		self.reports.append(report)
 
-	def reset(self):
-		self.ML.reset_clicks()
-		self.KL.reset_strokes()
-		self.last_time_stamp = datetime.now()
-
-	def update(self):
-		self.total_clicks += self.ML.get_clicks()
-		self.total_keystrokes += self.KL.get_strokes()
 
 
 	def run(self):
@@ -126,22 +143,17 @@ class ActivityMonitor:
 			now = datetime.now()
 			upd_diff = now - self.last_time_stamp
 			rep_diff = now - self.last_report_time
-			print (upd_diff.seconds, rep_diff.seconds)
+			#print (upd_diff.seconds, rep_diff.seconds)
 			if upd_diff.seconds >= self.update_interval_secs:
 				# self.log()
 				self.update()
 				self.reset()
 
 			if rep_diff.seconds >= self.report_interval_secs:
-				self.create_report()
-				self.display_last_report()
-
+				self.send_reports()
+				
 			time.sleep(1)
 			
-
-	def display_last_report(self):
-		for key in self.last_report:
-			print ('{}: {}'.format(key, self.last_report[key]))
 
 
 

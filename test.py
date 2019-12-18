@@ -1,19 +1,40 @@
-from win32gui import GetWindowText, GetForegroundWindow
+import requests
+import datetime
 
-from window_listener import WindowListener
-import time
-
-
-wl = WindowListener()
-wins = wl.get_window_names()
-
-current = GetWindowText(GetForegroundWindow())
-
-print (wins)
-print (current)
+url = 'http://lviv.ixioo.com:8001/ActivityTracking'
 
 
-time.sleep(5)
+data1 = {"ApplicationID": "TestID",
+"InfoDataTime": str(datetime.datetime.now()),
+"InfoDuration": 12345,
+"TitleActiveWindows": "PyCharm",
+"MouseClicks": 999,
+"KeysPressed": 500,
+"OpenDocuments": ['aaa', 'bbb', 'ccc']}
+
+data2 = {"ApplicationID": "TestID",
+"InfoDataTime": str(datetime.datetime.now()),
+"InfoDuration": 12345,
+"TitleActiveWindows": "PyCharm",
+"MouseClicks": 999,
+"KeysPressed": 500,
+"OpenDocuments": ['aaa', 'bbb', 'ccc']}
+
+data3 = {"ApplicationID": "TestID",
+"InfoDataTime": str(datetime.datetime.now()),
+"InfoDuration": 12345,
+"TitleActiveWindows": "PyCharm",
+"MouseClicks": 999,
+"KeysPressed": 500,
+"OpenDocuments": ['aaa', 'bbb', 'ccc']}
+
+array = [
+	data1,
+	data2,
+	data3
+]
 
 
-print (GetWindowText(GetForegroundWindow()))
+r = requests.post(url=url, json=array)
+
+print (r.text)
