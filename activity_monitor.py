@@ -46,6 +46,7 @@ class ActivityMonitor:
 							)
 
                 self.last_report = None
+                self.last_report_time = self.start_time
                 print ('Application ID {} initialised at {}'.format(self.application_id, self.start_time))
 
 	def get_opened_files(self, active_window):
@@ -104,10 +105,11 @@ class ActivityMonitor:
 			"KeysPressed": self.total_keystrokes,
 			"OpenDocuments": opened_files
 		}
-		print (report)
+		#print (report)
 
 		# send report
 		self.last_report = report
+		self.last_report_time = report_time
 
 	def reset(self):
 		self.ML.reset_clicks()
@@ -115,23 +117,25 @@ class ActivityMonitor:
 		self.last_time_stamp = datetime.now()
 
 	def update(self):
-		self.total_clicks = self.ML.get_clicks()
-		self.total_keystrokes = self.KL.get_strokes()
+		self.total_clicks += self.ML.get_clicks()
+		self.total_keystrokes += self.KL.get_strokes()
 
 
 	def run(self):
 		while True:
 			now = datetime.now()
-			diff = now - self.last_time_stamp
-			print (diff)
-			if (diff).seconds >= self.update_interval_secs:
+			upd_diff = now - self.last_time_stamp
+			rep_diff = now - self.last_report_time
+			print (upd_diff.seconds, rep_diff.seconds)
+			if upd_diff.seconds >= self.update_interval_secs:
 				# self.log()
 				self.update()
 				self.reset()
 
-			if (diff).seconds >= self.report_interval_secs:
+			if rep_diff.seconds >= self.report_interval_secs:
 				self.create_report()
-				# self.display_last_report()
+				self.display_last_report()
+
 			time.sleep(1)
 			
 
