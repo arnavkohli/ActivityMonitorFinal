@@ -122,7 +122,7 @@ class ActivityMonitor:
 
 		report_time = datetime.now()
 		active_window = GetWindowText(GetForegroundWindow())
-		opened_files = self.get_opened_files(active_window)
+		opened_files = [s.replace('\\', '\\\\') for s in self.get_opened_files(active_window)]
 		report = {
 			"ApplicationID": self.application_id,
 			"InfoDataTime": str(report_time),
